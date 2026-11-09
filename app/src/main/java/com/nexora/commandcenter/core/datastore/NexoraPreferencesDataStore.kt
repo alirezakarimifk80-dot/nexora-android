@@ -28,8 +28,8 @@ class NexoraPreferencesDataStore @Inject constructor(
         val privacyRedactIp: Boolean = false,
         val biometricLockEnabled: Boolean = false,
         val smartMemoryEnabled: Boolean = true,
-        val aiProvider: String = "gemini",
-        val aiModel: String = "gemini-3.1-flash-lite",
+        val aiProvider: String = "cloudflare-workers-ai",
+        val aiModel: String = "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
         val backendBaseUrl: String = BuildConfig.NEXORA_BACKEND_BASE_URL,
         val sessionToken: String = "",
         val lastBackupTimestamp: Long = 0L
@@ -50,9 +50,13 @@ class NexoraPreferencesDataStore @Inject constructor(
     }
 
     val userPreferencesFlow: Flow<UserPreferences> = context.dataStore.data.map { prefs ->
-        val storedModel = prefs[Keys.AI_MODEL] ?: "gemini-3.1-flash-lite"
-        val normalizedModel = if (storedModel == "gemini-2.5-flash" || storedModel.isBlank()) {
-            "gemini-3.1-flash-lite"
+        val storedModel = prefs[Keys.AI_MODEL] ?: "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+        val normalizedModel = if (
+            storedModel == "gemini-2.5-flash" ||
+            storedModel == "gemini-3.1-flash-lite" ||
+            storedModel.isBlank()
+        ) {
+            "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
         } else {
             storedModel
         }
@@ -63,7 +67,7 @@ class NexoraPreferencesDataStore @Inject constructor(
             privacyRedactIp = prefs[Keys.PRIVACY_REDACT_IP] ?: false,
             biometricLockEnabled = prefs[Keys.BIOMETRIC_LOCK] ?: false,
             smartMemoryEnabled = prefs[Keys.SMART_MEMORY_ENABLED] ?: true,
-            aiProvider = prefs[Keys.AI_PROVIDER] ?: "gemini",
+            aiProvider = prefs[Keys.AI_PROVIDER] ?: "cloudflare-workers-ai",
             aiModel = normalizedModel,
             backendBaseUrl = prefs[Keys.BACKEND_BASE_URL] ?: BuildConfig.NEXORA_BACKEND_BASE_URL,
             sessionToken = prefs[Keys.SESSION_TOKEN] ?: "",

@@ -22,9 +22,11 @@ import okhttp3.ResponseBody
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
+import retrofit2.http.Path
 import retrofit2.http.Streaming
 import java.net.Inet4Address
 import java.net.Inet6Address
@@ -52,23 +54,37 @@ data class MemoryContextItemDto(
 )
 
 @Serializable
+data class TokenUsageDto(
+    @SerialName("prompt_tokens") val promptTokens: Int = 0,
+    @SerialName("completion_tokens") val completionTokens: Int = 0,
+    @SerialName("total_tokens") val totalTokens: Int = 0
+)
+
+@Serializable
 data class ChatRequestDto(
     val message: String,
+    val conversationId: String? = null,
     val history: List<ChatHistoryItemDto> = emptyList(),
     val memories: List<MemoryContextItemDto> = emptyList(),
     val language: String = "en",
     val mode: String = "chat", // "chat" or "summarize"
-    val provider: String? = null,
-    val model: String? = null
+    val provider: String? = "cloudflare-workers-ai",
+    val model: String? = "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    val temperature: Double = 0.4,
+    @SerialName("max_tokens") val maxTokens: Int = 1024
 )
 
 @Serializable
 data class ChatResponseDto(
     val reply: String,
-    val provider: String = "gemini",
-    val model: String = "gemini-3.1-flash-lite",
+    val provider: String = "cloudflare-workers-ai",
+    val model: String = "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
     val latencyMs: Long = 0L,
-    val usedMemoriesCount: Int = 0
+    val usage: TokenUsageDto = TokenUsageDto(),
+    val usedMemoriesCount: Int = 0,
+    val conversationId: String = "",
+    val d1Persisted: Boolean = false,
+    val r2ObjectKey: String? = null
 )
 
 @Serializable
@@ -77,8 +93,8 @@ data class StreamChunkDto(
     val chunk: String = "",
     val done: Boolean = false,
     val error: String? = null,
-    val provider: String = "gemini",
-    val model: String = "gemini-3.1-flash-lite"
+    val provider: String = "cloudflare-workers-ai",
+    val model: String = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 ) {
     val resolvedText: String
         get() = text.ifEmpty { chunk }
@@ -88,7 +104,8 @@ data class StreamChunkDto(
 data class ApiErrorEnvelopeDto(
     val detail: String = "",
     val error: String = "",
-    val message: String = ""
+    val message: String = "",
+    val code: String = ""
 ) {
     val readableMessage: String
         get() = detail.ifBlank { error.ifBlank { message } }
@@ -100,46 +117,103 @@ data class ImageAnalysisRequestDto(
     val imageBase64: String,
     val mimeType: String = "image/jpeg",
     val language: String = "en",
-    val provider: String? = null,
-    val model: String? = null
+    val provider: String? = "cloudflare-workers-ai",
+    val model: String? = "@cf/meta/llama-3.2-11b-vision-instruct",
+    val storeInR2: Boolean = false
 )
 
 @Serializable
 data class BackendHealthDto(
     val status: String = "ok",
-    val service: String = "nexora-commercial-fastapi-backend",
+    val service: String = "nexora-cloudflare-worker-ai",
     val version: String = "4.0.0",
-    val provider: String = "gemini",
-    val activeProvider: String = "gemini",
-    val model: String = "gemini-3.1-flash-lite",
-    val activeModel: String = "gemini-3.1-flash-lite",
-    val fallbackModels: List<String> = listOf("gemini-3.1-flash-lite", "gemini-3.8-flash"),
+    val infrastructure: String = "Cloudflare Workers + Workers AI + D1 + R2",
+    val provider: String = "cloudflare-workers-ai",
+    val activeProvider: String = "cloudflare-workers-ai",
+    val model: String = "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    val activeModel: String = "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    val visionModel: String = "@cf/meta/llama-3.2-11b-vision-instruct",
+    val fallbackModels: List<String> = listOf(
+        "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+        "@cf/google/gemma-3-12b-it",
+        "@cf/meta/llama-3.1-8b-instruct"
+    ),
     val configured: Boolean = true,
     val apiKeyPresent: Boolean = true,
-    val configuredProviders: List<String> = listOf("gemini"),
+    val configuredProviders: List<String> = listOf("cloudflare-workers-ai"),
     val streamingSupported: Boolean = true,
     val visionSupported: Boolean = true,
-    val rateLimitPerMinute: Int = 60,
-    val timeoutSeconds: Double = 25.0,
-    val configurationNotice: String = "Ready",
+    val rateLimitPerMinute: Int = 40,
+    val timeoutSeconds: Double = 30.0,
+    val configurationNotice: String = "Cloudflare Workers AI ready",
     val timestampMs: Long = 0L
 )
 
 @Serializable
 data class ProviderInfoDto(
-    val activeProvider: String = "gemini",
-    val activeModel: String = "gemini-3.1-flash-lite",
-    val fallbackModels: List<String> = listOf("gemini-3.1-flash-lite", "gemini-3.8-flash"),
+    val activeProvider: String = "cloudflare-workers-ai",
+    val activeModel: String = "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    val activeVisionModel: String = "@cf/meta/llama-3.2-11b-vision-instruct",
+    val fallbackModels: List<String> = listOf(
+        "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+        "@cf/google/gemma-3-12b-it",
+        "@cf/meta/llama-3.1-8b-instruct"
+    ),
     val configured: Boolean = true,
     val apiKeyPresent: Boolean = true,
-    val configuredProviders: List<String> = listOf("gemini"),
+    val configuredProviders: List<String> = listOf("cloudflare-workers-ai"),
     val streamingSupported: Boolean = true,
     val visionSupported: Boolean = true,
     val maxImageSizeBytes: Int = 4194304,
     val supportedImageMimeTypes: List<String> = listOf("image/jpeg", "image/png", "image/webp"),
-    val rateLimitPerMinute: Int = 60,
-    val timeoutSeconds: Double = 25.0,
-    val configurationNotice: String = "Ready"
+    val rateLimitPerMinute: Int = 40,
+    val timeoutSeconds: Double = 30.0,
+    val configurationNotice: String = "Cloudflare Workers AI ready"
+)
+
+@Serializable
+data class CloudflareModelDescriptorDto(
+    val id: String,
+    val name: String,
+    val task: String = "text-generation",
+    val provider: String = "Cloudflare Workers AI",
+    val persianSupport: String = "excellent",
+    val visionSupported: Boolean = false,
+    val recommended: Boolean = false,
+    val description: String = ""
+)
+
+@Serializable
+data class CloudflareModelsCatalogDto(
+    val provider: String = "cloudflare-workers-ai",
+    val defaultTextModel: String = "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    val defaultVisionModel: String = "@cf/meta/llama-3.2-11b-vision-instruct",
+    val models: List<CloudflareModelDescriptorDto> = emptyList()
+)
+
+@Serializable
+data class CloudConversationCreateDto(
+    val id: String? = null,
+    val title: String,
+    val language: String = "en",
+    val model: String = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+)
+
+@Serializable
+data class CloudConversationDto(
+    val id: String,
+    val userId: String = "",
+    val title: String,
+    val language: String = "en",
+    val model: String = "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    val createdAt: Long = 0L,
+    val updatedAt: Long = 0L
+)
+
+@Serializable
+data class CloudConversationsListDto(
+    val conversations: List<CloudConversationDto> = emptyList(),
+    val d1Connected: Boolean = true
 )
 
 @Serializable
@@ -237,24 +311,36 @@ data class PublicIpResponseDto(
 )
 
 interface NexoraBackendApi {
-    @GET("api/v1/health")
+    @GET("api/health")
     suspend fun checkHealth(): BackendHealthDto
 
-    @GET("api/v1/ai/providers")
+    @GET("api/ai/status")
     suspend fun getProvidersInfo(): ProviderInfoDto
 
-    @POST("api/v1/ai/chat")
+    @GET("api/models")
+    suspend fun getModelsCatalog(): CloudflareModelsCatalogDto
+
+    @POST("api/ai/chat")
     suspend fun sendChatMessage(@Body request: ChatRequestDto): ChatResponseDto
 
     @Streaming
-    @POST("api/v1/ai/chat/stream")
+    @POST("api/ai/chat/stream")
     suspend fun streamChatMessage(@Body request: ChatRequestDto): ResponseBody
 
-    @POST("api/v1/ai/summarize")
+    @POST("api/ai/chat")
     suspend fun summarizeText(@Body request: ChatRequestDto): ChatResponseDto
 
-    @POST("api/v1/ai/vision")
+    @POST("api/ai/vision")
     suspend fun analyzeImage(@Body request: ImageAnalysisRequestDto): ChatResponseDto
+
+    @POST("api/conversations")
+    suspend fun createCloudConversation(@Body request: CloudConversationCreateDto): CloudConversationDto
+
+    @GET("api/conversations")
+    suspend fun listCloudConversations(): CloudConversationsListDto
+
+    @DELETE("api/conversations/{id}")
+    suspend fun deleteCloudConversation(@Path("id") conversationId: String): Map<String, Boolean>
 
     @POST("api/v1/auth/register")
     suspend fun registerAccount(@Body request: AuthRegisterRequestDto): AuthSessionResponseDto

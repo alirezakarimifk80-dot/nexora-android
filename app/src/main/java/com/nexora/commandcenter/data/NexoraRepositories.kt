@@ -65,16 +65,20 @@ data class AiConnectionDiagnosticsState(
     val backendConnection: String = "UNTESTED",
     val apiEndpointStatus: String = "UNTESTED",
     val baseUrl: String = "",
-    val providerConfiguration: String = "gemini (Unverified)",
+    val providerConfiguration: String = "cloudflare-workers-ai (Unverified)",
     val providerConfigured: Boolean = false,
     val configuredProviders: List<String> = emptyList(),
-    val modelConfiguration: String = "gemini-3.1-flash-lite",
-    val fallbackModels: List<String> = listOf("gemini-3.1-flash-lite", "gemini-3.8-flash"),
-    val configurationNotice: String = "Run connection test to verify backend and AI provider.",
+    val modelConfiguration: String = "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    val fallbackModels: List<String> = listOf(
+        "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+        "@cf/google/gemma-3-12b-it",
+        "@cf/meta/llama-3.1-8b-instruct"
+    ),
+    val configurationNotice: String = "Run connection test to verify Cloudflare Worker & Workers AI.",
     val lastRequestStatus: String = "IDLE",
     val responseTimeMs: Long = 0L,
     val lastError: String? = null,
-    val lastTestPrompt: String = "Hello NEXORA. Explain what you can do in three sentences.",
+    val lastTestPrompt: String = "Hello NEXORA.",
     val lastTestResponse: String = "",
     val lastCheckedAtMs: Long = 0L
 )
@@ -189,15 +193,15 @@ class AiRepository @Inject constructor(
         }
         _diagnosticsState.value = _diagnosticsState.value.copy(
             backendConnection = if (health.configured) "CONNECTED (OK)" else "DEGRADED (CONFIG REQUIRED)",
-            apiEndpointStatus = "/api/v1/health · 200 OK",
+            apiEndpointStatus = "/api/health · 200 OK",
             baseUrl = prefs.backendBaseUrl,
-            providerConfiguration = "${health.activeProvider.uppercase()} · ${if (health.configured) "Server Key Configured" else "Key Missing"}",
+            providerConfiguration = "${health.activeProvider.uppercase()} · ${if (health.configured) "Workers AI Binding Active" else "Binding Missing"}",
             providerConfigured = health.configured,
             configuredProviders = health.configuredProviders,
             modelConfiguration = health.activeModel.ifBlank { health.model },
             fallbackModels = health.fallbackModels,
             configurationNotice = health.configurationNotice.ifBlank {
-                if (health.configured) "Server-side AI credentials verified." else "Server-side API key required."
+                if (health.configured) "Cloudflare Workers AI & D1 bindings verified." else "Workers AI configuration required."
             },
             responseTimeMs = elapsedMs,
             lastCheckedAtMs = System.currentTimeMillis()
@@ -207,7 +211,7 @@ class AiRepository @Inject constructor(
         val readable = extractReadableError(err)
         _diagnosticsState.value = _diagnosticsState.value.copy(
             backendConnection = "UNREACHABLE",
-            apiEndpointStatus = "/api/v1/health · FAILED",
+            apiEndpointStatus = "/api/health · FAILED",
             lastRequestStatus = "FAILED",
             lastError = readable,
             lastCheckedAtMs = System.currentTimeMillis()
@@ -243,25 +247,28 @@ class AiRepository @Inject constructor(
         }
 
         try {
-            // Step 1: Check /api/v1/health
+            // Step 1: Check /api/health
             val health = backendApi.checkHealth()
-            // Step 2: Check /api/v1/ai/providers
+            // Step 2: Check /api/ai/status & /api/models
             val providerInfo: ProviderInfoDto? = runCatching { backendApi.getProvidersInfo() }.getOrNull()
+            val modelsCatalog = runCatching { backendApi.getModelsCatalog() }.getOrNull()
 
             val activeProvider = providerInfo?.activeProvider ?: health.activeProvider.ifBlank { health.provider }
-            val activeModel = providerInfo?.activeModel ?: health.activeModel.ifBlank { health.model }
+            val activeModel = modelsCatalog?.defaultTextModel
+                ?: providerInfo?.activeModel
+                ?: health.activeModel.ifBlank { health.model }
             val isConfigured = providerInfo?.configured ?: health.configured
 
             if (!isConfigured) {
                 val missingKeyMsg = providerInfo?.configurationNotice?.ifBlank { null }
                     ?: health.configurationNotice.ifBlank {
-                        "AI provider '$activeProvider' is not configured on the backend server. Configure GEMINI_API_KEY in server environment variables."
+                        "Cloudflare Workers AI is not configured. Ensure Workers AI is enabled on your Cloudflare account."
                     }
                 val degradedState = _diagnosticsState.value.copy(
                     isRunningTest = false,
                     backendConnection = "CONNECTED (200 OK)",
-                    apiEndpointStatus = "/api/v1/health & /api/v1/ai/providers · REACHABLE",
-                    providerConfiguration = "${activeProvider.uppercase()} · MISSING SERVER API KEY",
+                    apiEndpointStatus = "/api/health & /api/ai/status · REACHABLE",
+                    providerConfiguration = "${activeProvider.uppercase()} · WORKERS AI NOT CONFIGURED",
                     providerConfigured = false,
                     configuredProviders = providerInfo?.configuredProviders ?: health.configuredProviders,
                     modelConfiguration = activeModel,
@@ -275,7 +282,7 @@ class AiRepository @Inject constructor(
                 return@withContext AppResult.Error(missingKeyMsg)
             }
 
-            // Step 3: Execute real end-to-end AI chat request
+            // Step 3: Execute real end-to-end Cloudflare Worker AI chat request (/api/ai/chat)
             var chatResponseReply = ""
             var usedModel = activeModel
             var usedProvider = activeProvider
@@ -299,9 +306,9 @@ class AiRepository @Inject constructor(
             val successState = _diagnosticsState.value.copy(
                 isRunningTest = false,
                 backendConnection = "CONNECTED (${health.service} v${health.version})",
-                apiEndpointStatus = "/api/v1/health, /api/v1/ai/providers, /api/v1/ai/chat · 200 OK",
+                apiEndpointStatus = "/api/health, /api/ai/status, /api/models, /api/ai/chat · 200 OK",
                 baseUrl = prefs.backendBaseUrl,
-                providerConfiguration = "${usedProvider.uppercase()} · Server Key Active (Verified)",
+                providerConfiguration = "${usedProvider.uppercase()} · Workers AI Active (Verified)",
                 providerConfigured = true,
                 configuredProviders = providerInfo?.configuredProviders ?: health.configuredProviders,
                 modelConfiguration = usedModel,

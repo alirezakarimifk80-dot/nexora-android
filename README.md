@@ -1,44 +1,31 @@
-# NEXORA — Commercial Personal AI Command Center (`v4.0.0`)
+# NEXORA — Personal AI Command Center (`v4.0.0` · Cloudflare Serverless Edition)
 
-**NEXORA** is a full-stack commercial Android & Cloud AI platform engineered with **Kotlin 2.0.21**, **Jetpack Compose (Material 3)**, **Hilt Dependency Injection**, **Room SQLite (v3)**, **Preferences DataStore**, **CameraX + MLKit + ZXing**, **WorkManager**, a modular **Python FastAPI Commercial Backend (`backend/`)**, and a role-protected **React + TypeScript Admin Web Panel (`admin-web/`)**.
+**NEXORA** is a production-grade Android & Serverless AI Command Center engineered with **Kotlin 2.0.21**, **Jetpack Compose (Material 3)**, **Hilt Dependency Injection**, **Room SQLite (v3)**, **Preferences DataStore**, **CameraX + MLKit + ZXing**, **WorkManager**, and a 100% serverless **Cloudflare Workers + Workers AI + D1 + R2** TypeScript backend (`cloudflare/`).
+
+No Railway, Render, VPS, or traditional FastAPI server is used.
 
 ---
 
-## 1. Phase 1–4 Complete Architecture
+## 1. Architecture Overview
 
 - **Android Client (`app/src/main/java/com/nexora/commandcenter/`)**:
   - **Custom Design System (`NexoraDesignSystem.kt`)**: Nothing OS + Linear + Raycast aesthetic with `NexoraAiOrb`, `NexoraSplineAreaChart`, `NexoraRadialGauge`, `NexoraChart`, and 19 custom Canvas vector glyphs.
-  - **AI Core (`AssistantFeature.kt`, `NexoraRepositories.kt`)**: Real SSE token streaming, Stop Generation, Regenerate Response, Conversation Search, Vision upload with MIME/4MB validation & progress bar, User-Controlled Smart Memory Vault, and Honest Offline Request Queue.
-  - **Commercial & Account Hub (`NexoraCommercialFeature.kt`)**:
-    1. **Profile & Auth**: Registration, Login, Logout, Email Verification, Profile Picture & Name update.
-    2. **Account Security**: PBKDF2-HMAC-SHA256 backend password hashing (200,000 iterations) & SHA-256 session digest management.
-    3. **Subscription Plans**: Free vs. NEXORA Quantum Pro Monthly ($9.99) & Yearly ($79.99) comparison, Google Play Billing verification (`PLAY_BILLING_TEST_SANDBOX` when merchant credentials are unconfigured), and Restore Purchases.
-    4. **Premium Features**: Higher AI usage limits (1,000/day vs 25/day), Multi-Device Cloud Sync, Encrypted Cloud Backups, and Advanced Telemetry.
-    5. **Cloud Synchronization**: Offline-first delta sync for Notes, Tasks, Preferences, Selected AI Conversations, and Personal Settings with deterministic Server-Authoritative Conflict Resolution.
-    6. **Notification Settings**: Configurable channels for Task Reminders, Account Alerts, Cloud Sync, and Subscriptions.
-    7. **Privacy Center & Cloud Backup**: Encrypted Cloud Backup & Restore, GDPR Personal Data JSON Export, and Cascading Account Deletion.
-- **Python FastAPI Backend (`backend/`)**:
-  - SQL Migrations (`migrations/001_initial_commercial_schema.sql`) automatically applied by `app/database.py`.
-  - Multi-provider AI Engine (`app/services/ai_engine.py`) + Commercial Platform Service (`app/services/commercial_service.py`).
-- **Admin Web Panel (`admin-web/src/AdminApp.tsx`)**:
-  - Role-protected administration dashboard (`role === "admin"` required) with user management, account suspension/activation, subscription tier overrides, and audit logs.
+  - **AI Core (`AssistantFeature.kt`, `NexoraRepositories.kt`, `NexoraNetwork.kt`)**: Connected directly to the **Cloudflare Worker REST & SSE Streaming API** (`/api/ai/chat`, `/api/ai/vision`, `/api/health`, `/api/ai/status`, `/api/models`, `/api/conversations`), with Stop Generation, Regenerate Response, Conversation Search, Vision upload with MIME/4MB validation, User-Controlled Smart Memory Vault, and Honest Offline Request Queue.
+- **Cloudflare Serverless AI Backend (`cloudflare/`)**:
+  - **Cloudflare Workers (`src/index.ts`)**: Main TypeScript router with CORS, sliding-window rate limiting, and authentication middleware.
+  - **Cloudflare Workers AI (`src/services/ai-service.ts`, `src/services/model-service.ts`)**:
+    - Text Generation (`POST /api/ai/chat`): `@cf/meta/llama-3.3-70b-instruct-fp8-fast`, `@cf/google/gemma-3-12b-it`, `@cf/meta/llama-3.1-8b-instruct`, `@cf/qwen/qwen2.5-coder-32b-instruct` with full Persian (فارسی) & English support.
+    - Vision Analysis (`POST /api/ai/vision`): `@cf/meta/llama-3.2-11b-vision-instruct`, `@cf/llava-hf/llava-1.5-7b-hf`, `@cf/unum/uform-gen2-qwen-500m`.
+  - **Cloudflare D1 (`migrations/0001_initial_nexora_d1.sql`)**: SQLite tables for `users`, `conversations`, `messages`, `ai_usage_logs`, and `app_config`.
+  - **Cloudflare R2 (`env.NEXORA_ASSETS`)**: Optional object storage for vision image attachments.
 
 ---
 
-## 2. Running Automated Tests
+## 2. Automated GitHub Actions CI/CD Workflows
 
-```bash
-cd nexora-android/backend
-python3 -m unittest discover -s tests -v
-```
+1. **Android APK Build (`.github/workflows/android.yml` & `release.yml`)**:
+   - Automatically runs JUnit tests and builds `app-debug.apk` on every push to `main`.
+2. **Cloudflare Worker Deployment (`.github/workflows/cloudflare-deploy.yml`)**:
+   - Automatically typechecks (`tsc --noEmit`) and deploys `cloudflare/` to Cloudflare Workers on push to `main` using `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` GitHub Secrets.
 
----
-
-## 3. External Configuration Checklist for Production Deployment
-
-1. **AI Provider Keys (`backend/.env`)**:
-   - Set `GEMINI_API_KEY` (or `OPENAI_API_KEY` / `OLLAMA_BASE_URL`).
-2. **Google Play Billing Live Verification (Optional for Live Merchant Charging)**:
-   - Set `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` on the FastAPI backend to switch `/api/v1/subscriptions/verify` from `PLAY_BILLING_TEST_SANDBOX` to `GOOGLE_PLAY_VERIFIED`.
-3. **Firebase Cloud Messaging Push Delivery (Optional)**:
-   - Place `google-services.json` in `nexora-android/app/` if remote FCM push delivery is desired alongside the built-in local `WorkManager` notifications.
+See [`cloudflare/README.md`](./cloudflare/README.md) for complete setup, D1 migration, and `curl` testing instructions.

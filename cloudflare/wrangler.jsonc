@@ -1,0 +1,43 @@
+{
+  // NEXORA Personal AI Command Center — Cloudflare Worker Configuration
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nexora-ai-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-02-14",
+  "observability": {
+    "enabled": true
+  },
+
+  // 1. Native Cloudflare Workers AI Binding (env.AI)
+  "ai": {
+    "binding": "AI"
+  },
+
+  // 2. Cloudflare D1 Serverless SQL Database Binding (env.DB)
+  // Run `npx wrangler d1 create nexora-db` and paste your database_id below
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "nexora-db",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // 3. Optional Cloudflare R2 Object Storage Binding (env.NEXORA_ASSETS)
+  // Run `npx wrangler r2 bucket create nexora-assets` to enable persistent image storage
+  "r2_buckets": [
+    {
+      "binding": "NEXORA_ASSETS",
+      "bucket_name": "nexora-assets"
+    }
+  ],
+
+  // 4. Non-secret Environment Variables
+  "vars": {
+    "DEFAULT_AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    "DEFAULT_VISION_MODEL": "@cf/meta/llama-3.2-11b-vision-instruct",
+    "RATE_LIMIT_PER_MINUTE": "40",
+    "ALLOWED_ORIGINS": "*"
+  }
+}

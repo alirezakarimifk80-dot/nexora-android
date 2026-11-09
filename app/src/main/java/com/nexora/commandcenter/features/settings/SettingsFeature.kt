@@ -290,27 +290,27 @@ fun SettingsScreen(
             }
         }
 
-        // 3. AI Provider, Model & FastAPI Backend Endpoint Configuration
+        // 3. Cloudflare Workers AI, Model & Serverless Worker Endpoint Configuration
         item {
             NexoraCard(modifier = Modifier.fillMaxWidth()) {
                 NexoraSectionHeader(
-                    eyebrow = "EXTENSIBLE AI ENGINE & GATEWAY",
-                    title = if (isFa) "تنظیمات موتور هوش مصنوعی و سرور FastAPI" else "AI Provider, Model & FastAPI Gateway"
+                    eyebrow = "CLOUDFLARE WORKERS AI & D1 SERVERLESS INFRASTRUCTURE",
+                    title = if (isFa) "تنظیمات موتور Cloudflare Workers AI و آدرس Worker" else "Cloudflare Workers AI Model & Worker URL"
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(
-                        "gemini" to "gemini-3.1-flash-lite",
-                        "openai" to "gpt-4o-mini",
-                        "ollama" to "llama3.2"
-                    ).forEach { (prov, defaultModel) ->
+                        "Llama 3.3 70B" to "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+                        "Gemma 3 12B" to "@cf/google/gemma-3-12b-it",
+                        "Llama 3.1 8B" to "@cf/meta/llama-3.1-8b-instruct"
+                    ).forEach { (labelText, cfModelId) ->
                         FilterChip(
-                            selected = prefs.aiProvider == prov,
+                            selected = modelInput == cfModelId,
                             onClick = {
-                                modelInput = defaultModel
-                                viewModel.setProviderAndModel(prov, defaultModel)
+                                modelInput = cfModelId
+                                viewModel.setProviderAndModel("cloudflare-workers-ai", cfModelId)
                             },
-                            label = { Text(prov.uppercase()) }
+                            label = { Text(labelText) }
                         )
                     }
                 }
@@ -318,15 +318,15 @@ fun SettingsScreen(
                 NexoraTextField(
                     value = modelInput,
                     onValueChange = { modelInput = it },
-                    label = if (isFa) "نام مدل هوش مصنوعی" else "Configurable AI Model Name",
-                    placeholder = "gemini-3.1-flash-lite"
+                    label = if (isFa) "شناسه مدل Workers AI" else "Workers AI Model Identifier",
+                    placeholder = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 NexoraTextField(
                     value = backendUrlInput,
                     onValueChange = { backendUrlInput = it },
-                    label = "FastAPI Base URL (HTTPS Ready)",
-                    placeholder = "https://ais-dev-4gdtdhlqaovmdbbdgoa3j6-626851376536.europe-west2.run.app/"
+                    label = "Cloudflare Worker Base URL (HTTPS)",
+                    placeholder = "https://nexora-ai-worker.workers.dev/"
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 Row(
@@ -334,15 +334,15 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     NexoraButton(
-                        text = if (isFa) "ذخیره تنظیمات سرور" else "Save Provider & URL",
+                        text = if (isFa) "ذخیره تنظیمات کلادفلر" else "Save Worker & Model",
                         onClick = {
-                            viewModel.setProviderAndModel(prefs.aiProvider, modelInput)
+                            viewModel.setProviderAndModel("cloudflare-workers-ai", modelInput)
                             viewModel.updateBackendUrl(backendUrlInput)
                         },
                         modifier = Modifier.weight(1f)
                     )
                     NexoraButton(
-                        text = if (isFa) "تست سلامت سرور" else "Check /health",
+                        text = if (isFa) "تست سلامت Worker" else "Check /api/health",
                         onClick = { viewModel.testBackendHealth() },
                         modifier = Modifier.weight(1f),
                         isPrimary = false

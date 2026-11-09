@@ -1052,23 +1052,23 @@ fun AiConnectionTestScreen(
         item {
             NexoraCard(modifier = Modifier.fillMaxWidth()) {
                 NexoraSectionHeader(
-                    eyebrow = "GATEWAY & MODEL CONFIGURATION",
-                    title = if (isFa) "تنظیم آدرس سرور و مدل" else "Configure Gateway URL & Model"
+                    eyebrow = "CLOUDFLARE WORKER & WORKERS AI MODEL",
+                    title = if (isFa) "تنظیم آدرس Cloudflare Worker و مدل" else "Configure Cloudflare Worker URL & Model"
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(
-                        "gemini" to "gemini-3.1-flash-lite",
-                        "openai" to "gpt-4o-mini",
-                        "ollama" to "llama3.2"
-                    ).forEach { (prov, defModel) ->
+                        "Llama 3.3 70B" to "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+                        "Gemma 3 12B" to "@cf/google/gemma-3-12b-it",
+                        "Llama 3.1 8B" to "@cf/meta/llama-3.1-8b-instruct"
+                    ).forEach { (labelText, defModel) ->
                         FilterChip(
-                            selected = prefs.aiProvider == prov,
+                            selected = modelInput == defModel,
                             onClick = {
                                 modelInput = defModel
-                                viewModel.updateProviderModelAndUrl(prov, defModel, baseUrlInput)
+                                viewModel.updateProviderModelAndUrl("cloudflare-workers-ai", defModel, baseUrlInput)
                             },
-                            label = { Text(prov.uppercase()) }
+                            label = { Text(labelText) }
                         )
                     }
                 }
@@ -1076,21 +1076,21 @@ fun AiConnectionTestScreen(
                 NexoraTextField(
                     value = modelInput,
                     onValueChange = { modelInput = it },
-                    label = if (isFa) "مدل فعال" else "Active AI Model",
-                    placeholder = "gemini-3.1-flash-lite"
+                    label = if (isFa) "شناسه مدل Workers AI" else "Active Workers AI Model",
+                    placeholder = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 NexoraTextField(
                     value = baseUrlInput,
                     onValueChange = { baseUrlInput = it },
-                    label = if (isFa) "آدرس پایه بک‌اند (Base URL)" else "Backend Base URL",
-                    placeholder = "https://ais-dev-4gdtdhlqaovmdbbdgoa3j6-626851376536.europe-west2.run.app/"
+                    label = if (isFa) "آدرس پایه Cloudflare Worker" else "Cloudflare Worker Base URL",
+                    placeholder = "https://nexora-ai-worker.workers.dev/"
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 NexoraButton(
-                    text = if (isFa) "اعمال تنظیمات" else "Apply Configuration",
+                    text = if (isFa) "اعمال تنظیمات کلادفلر" else "Apply Cloudflare Worker Configuration",
                     onClick = {
-                        viewModel.updateProviderModelAndUrl(prefs.aiProvider, modelInput, baseUrlInput)
+                        viewModel.updateProviderModelAndUrl("cloudflare-workers-ai", modelInput, baseUrlInput)
                     },
                     modifier = Modifier.fillMaxWidth(),
                     isPrimary = false

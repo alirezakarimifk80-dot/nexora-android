@@ -1,0 +1,42 @@
+name: NEXORA Cloudflare Worker CI/CD Deployment
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "cloudflare/**"
+      - ".github/workflows/cloudflare-deploy.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy-cloudflare-worker:
+    name: Typecheck, Migrate D1 & Deploy Cloudflare Worker
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cloudflare
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Cloudflare Worker Dependencies
+        run: npm install
+
+      - name: TypeScript Verification (tsc --noEmit)
+        run: npm run typecheck
+
+      - name: Apply D1 Database Migrations & Deploy to Cloudflare Workers
+        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: cloudflare
+          command: deploy
