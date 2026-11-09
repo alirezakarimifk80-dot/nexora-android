@@ -1,0 +1,59 @@
+name: NEXORA Android Signed Release APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Release version name (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-signed-release:
+    name: Build & Sign Release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle 8.10.2
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Decode Release Keystore from GitHub Secrets
+        if: ${{ secrets.NEXORA_KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "${{ secrets.NEXORA_KEYSTORE_BASE64 }}" | base64 --decode > ${{ github.workspace }}/release-keystore.jks
+
+      - name: Run Unit Tests & Build Signed Release APK
+        env:
+          NEXORA_KEYSTORE_PATH: ${{ github.workspace }}/release-keystore.jks
+          NEXORA_KEYSTORE_PASSWORD: ${{ secrets.NEXORA_KEYSTORE_PASSWORD }}
+          NEXORA_KEY_ALIAS: ${{ secrets.NEXORA_KEY_ALIAS }}
+          NEXORA_KEY_PASSWORD: ${{ secrets.NEXORA_KEY_PASSWORD }}
+          NEXORA_BACKEND_BASE_URL: ${{ vars.NEXORA_BACKEND_BASE_URL || 'https://api.nexora.example.com/' }}
+        run: |
+          gradle testReleaseUnitTest assembleRelease --stacktrace --no-daemon
+
+      - name: Upload Signed Release APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexora-release-apk
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 90

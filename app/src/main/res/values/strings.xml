@@ -1,0 +1,29 @@
+<resources>
+    <string name="app_name">NEXORA</string>
+    <string name="app_subtitle">Personal AI Command Center</string>
+    <string name="nav_home">Dashboard</string>
+    <string name="nav_assistant">AI Assistant</string>
+    <string name="nav_tools">Smart Tools</string>
+    <string name="nav_tasks">Tasks</string>
+    <string name="nav_network">Network</string>
+    <string name="nav_settings">Settings</string>
+    <string name="offline_mode_banner">Offline Mode · Local Room Database Active</string>
+    <string name="online_mode_banner">Online Mode · Cloud AI &amp; Diagnostics Ready</string>
+    <string name="ai_placeholder">Ask NEXORA anything, summarize text, or attach an image...</string>
+    <string name="new_conversation">New Conversation</string>
+    <string name="summarize_text">Summarize Text</string>
+    <string name="analyze_image">Analyze Image</string>
+    <string name="calculator">Scientific Calculator</string>
+    <string name="unit_converter">Unit Converter</string>
+    <string name="qr_scanner">QR Scanner &amp; Generator</string>
+    <string name="notes_manager">Notes Manager</string>
+    <string name="text_utilities">Text Utilities</string>
+    <string name="file_manager">Local File Vault</string>
+    <string name="network_offline_section">Offline Local Interface Diagnostics</string>
+    <string name="network_online_section">Online Internet &amp; DNS Diagnostics</string>
+    <string name="language_english">English (LTR)</string>
+    <string name="language_persian">فارسی (RTL)</string>
+    <string name="theme_dark">Dark Navy Futuristic</string>
+    <string name="theme_light">Daylight Crisp Glass</string>
+    <string name="backup_restore">Backup &amp; Restore Database</string>
+</resources>

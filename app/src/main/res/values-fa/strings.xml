@@ -1,0 +1,29 @@
+<resources>
+    <string name="app_name">نکسورا (NEXORA)</string>
+    <string name="app_subtitle">مرکز فرماندهی هوش مصنوعی شخصی شما</string>
+    <string name="nav_home">داشبورد</string>
+    <string name="nav_assistant">دستیار هوشمند</string>
+    <string name="nav_tools">ابزارهای هوشمند</string>
+    <string name="nav_tasks">وظایف و تقویم</string>
+    <string name="nav_network">مرکز شبکه</string>
+    <string name="nav_settings">تنظیمات</string>
+    <string name="offline_mode_banner">حالت آفلاین · پایگاه داده محلی Room فعال است</string>
+    <string name="online_mode_banner">حالت آنلاین · هوش مصنوعی ابری و ابزارهای شبکه آماده</string>
+    <string name="ai_placeholder">از نکسورا بپرسید، متن را خلاصه کنید یا تصویر بفرستید...</string>
+    <string name="new_conversation">گفتگوی جدید</string>
+    <string name="summarize_text">خلاصه‌سازی متن</string>
+    <string name="analyze_image">تحلیل تصویر با هوش مصنوعی</string>
+    <string name="calculator">ماشین‌حساب مهندسی پیشرفته</string>
+    <string name="unit_converter">مبدل واحدها</string>
+    <string name="qr_scanner">اسکنر و سازنده بارکد QR</string>
+    <string name="notes_manager">مدیریت یادداشت‌ها</string>
+    <string name="text_utilities">ابزارهای پردازش متن</string>
+    <string name="file_manager">مدیریت فایل‌های محلی</string>
+    <string name="network_offline_section">عیب‌یابی رابط شبکه محلی (بدون نیاز به اینترنت)</string>
+    <string name="network_online_section">تست پینگ، DNS و آی‌پی عمومی (نیازمند اینترنت)</string>
+    <string name="language_english">English (LTR)</string>
+    <string name="language_persian">فارسی (راست‌به‌چپ)</string>
+    <string name="theme_dark">تاریک آینده‌نگر (سرمه‌ای نئون)</string>
+    <string name="theme_light">روشن شیشه‌ای</string>
+    <string name="backup_restore">پشتیبان‌گیری و بازیابی اطلاعات</string>
+</resources>
