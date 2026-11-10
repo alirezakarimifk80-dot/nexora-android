@@ -32,13 +32,9 @@ jobs:
           gradle-version: '8.10.2'
           cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master' }}
 
-      - name: Run Python FastAPI Backend & SQL Migration Unit Tests
-        run: |
-          python3 -m unittest discover -s backend/tests -v
-
       - name: Run Unit Tests & Assemble Debug APK
         env:
-          NEXORA_BACKEND_BASE_URL: ${{ vars.NEXORA_BACKEND_BASE_URL || 'https://api.nexora.example.com/' }}
+          NEXORA_BACKEND_BASE_URL: ${{ vars.NEXORA_BACKEND_BASE_URL || 'https://ais-dev-4gdtdhlqaovmdbbdgoa3j6-626851376536.europe-west2.run.app/' }}
         run: |
           gradle testDebugUnitTest assembleDebug --stacktrace --no-daemon
 

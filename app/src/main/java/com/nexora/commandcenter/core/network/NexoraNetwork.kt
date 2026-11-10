@@ -6,16 +6,21 @@ import android.net.LinkProperties
 import android.net.NetworkCapabilities
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.nexora.commandcenter.BuildConfig
+import com.nexora.commandcenter.core.datastore.NexoraPreferencesDataStore
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.ResponseBody
@@ -556,7 +561,7 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideOkHttpClient(
-        preferencesDataStore: com.nexora.commandcenter.core.datastore.NexoraPreferencesDataStore
+        preferencesDataStore: NexoraPreferencesDataStore
     ): OkHttpClient {
         val logging = HttpLoggingInterceptor().apply {
             level = if (BuildConfig.DEBUG) {
@@ -565,23 +570,21 @@ object NetworkModule {
                 HttpLoggingInterceptor.Level.NONE
             }
         }
-        val dynamicEndpointInterceptor = okhttp3.Interceptor { chain ->
+        val dynamicEndpointInterceptor = Interceptor { chain ->
             val original = chain.request()
             // Avoid rewriting external IP lookup requests
             if (original.url.host.contains("ipwho.is")) {
                 return@Interceptor chain.proceed(original)
             }
-            val currentPrefs = kotlinx.coroutines.runBlocking {
-                kotlinx.coroutines.flow.firstOrNull(preferencesDataStore.userPreferencesFlow)
+            val currentPrefs: NexoraPreferencesDataStore.UserPreferences? = runBlocking {
+                preferencesDataStore.userPreferencesFlow.firstOrNull()
             }
             val configuredBase = currentPrefs?.backendBaseUrl?.trim().orEmpty()
             var builder = original.newBuilder()
 
             if (configuredBase.isNotBlank()) {
-                val parsedBase = okhttp3.HttpUrl.Companion.run {
-                    val normalized = if (configuredBase.endsWith("/")) configuredBase else "$configuredBase/"
-                    normalized.toHttpUrlOrNull()
-                }
+                val normalized = if (configuredBase.endsWith("/")) configuredBase else "$configuredBase/"
+                val parsedBase = normalized.toHttpUrlOrNull()
                 if (parsedBase != null) {
                     val newUrl = original.url.newBuilder()
                         .scheme(parsedBase.scheme)

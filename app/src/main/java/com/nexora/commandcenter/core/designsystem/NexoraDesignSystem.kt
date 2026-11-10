@@ -95,6 +95,7 @@ object NexoraColors {
     val NeonCyan = CyberCyan
     val NeonPurple = ElectricViolet
     val EmeraldOnline = EmeraldSignal
+    val EmeraldPulse = EmeraldSignal
     val AmberWarning = AmberSignal
     val CoralDanger = CrimsonSignal
 
@@ -562,7 +563,7 @@ fun NeonGradientButton(
 fun NexoraTextField(
     value: String,
     onValueChange: (String) -> Unit,
-    placeholder: String,
+    placeholder: String = "",
     modifier: Modifier = Modifier,
     label: String? = null,
     maxLines: Int = 4,

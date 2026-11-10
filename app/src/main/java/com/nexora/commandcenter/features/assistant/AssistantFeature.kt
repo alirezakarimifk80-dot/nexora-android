@@ -361,6 +361,7 @@ class AssistantViewModel @Inject constructor(
 fun AssistantScreen(
     isFa: Boolean,
     initialPrompt: String = "",
+    onOpenConnectionTest: () -> Unit = {},
     viewModel: AssistantViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -1110,6 +1111,7 @@ fun AiConnectionTestScreen(
                     value = testPromptInput,
                     onValueChange = { testPromptInput = it },
                     label = if (isFa) "پیام تست واقعی" else "Real Verification Prompt",
+                    placeholder = if (isFa) "پیام تست را وارد کنید (مثلاً Hello NEXORA.)..." else "Enter test prompt (e.g., Hello NEXORA.)...",
                     minLines = 2,
                     maxLines = 4
                 )
